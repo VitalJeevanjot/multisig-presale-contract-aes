@@ -1,0 +1,149 @@
+@compiler >= 6
+
+include "String.aes"
+
+payable contract MuSigPreOrder =
+
+    datatype event = Deposit(address, int)
+                   | Submit(int)
+                   | Approve(address, int)
+                   | Revoke(address, int)
+                   | Execute(int)  
+
+    record transaction = {
+        to: address,
+        value: int,
+        data: bytes(32),
+        executed: bool
+     }
+
+    record state = {
+        owners : list(address), 
+        is_owner : map(address, bool), 
+        approvals_required: int,
+        transactions: list(transaction),
+        approval_status: map(int, map(address, bool)),
+        pack_price: int,
+        buy_function_expiry: int
+        }
+
+    function duplicate_not_exist(_addresses: list(address)) : bool =
+        switch(_addresses)
+         [] => true
+         (_address) :: remaining_addresses =>
+            let count_indices : list(int) = List.find_indices((x) => x ==_address, _addresses)
+            if(List.length(count_indices) > 1)
+                false
+            else
+                duplicate_not_exist(remaining_addresses)
+
+    stateful entrypoint init(_owners: list(address) , _required_approvals: int) = 
+        require(List.length(_owners) > 1, "more than one, owners required!")
+        require(_required_approvals > 1 && _required_approvals =< List.length(_owners) , "certain approvals from owners required!")
+        require(duplicate_not_exist(_owners), "all addresses should be different.")
+        { owners = _owners,
+            is_owner = {},
+            approvals_required = _required_approvals,
+            transactions = [],
+            approval_status = {},
+            pack_price = 79 * 1000000000000000000,
+            buy_function_expiry = Chain.timestamp + 2592000000
+            } 
+    
+    payable entrypoint buy_booster_packs() =
+        require(Call.value == state.pack_price, "Sent less or more AE than the price of booster pack!")
+        require(Chain.timestamp < state.buy_function_expiry, "The Presale is expired!")
+        Chain.event(Deposit(Call.caller, Call.value))
+
+    stateful entrypoint submit(_address: address, _value: int, _data: bytes(32)) =
+        require(List.contains(_address, state.owners), "Not an owner to submit!")
+    
+        let tx_data : list(transaction) = [{
+            to = _address,
+            value = _value,
+            data = _data,
+            executed = false
+         }]
+        
+        put(state{transactions @ txs = txs ++ tx_data})
+        let _index : int = List.length(state.transactions) - 1
+        Chain.event(Submit(_index))
+
+    
+    public stateful entrypoint approve(_txId: int) =
+        require(List.contains(Call.caller, state.owners), "Not an owner to approve!")
+        require(_txId < List.length(state.transactions), "Tx id doesn't exist!")
+        require(!state.approval_status[_txId][Call.caller], "Already approved tx id!")
+        require(!List.get(_txId, state.transactions).executed, "Already executed tx id!")
+
+        put(state{approval_status[_txId][Call.caller] = true})
+        Chain.event(Approve(Call.caller, _txId))
+
+    function __get_approval_count(_list: list(address * bool), _count: int) : int =
+        switch(_list)
+            [] => _count
+            (_address, _approved) :: remaining_pairs =>
+                if(_approved)
+                    let count = _count + 1
+                    __get_approval_count(remaining_pairs, count)
+                else
+                    __get_approval_count(remaining_pairs, _count)
+
+
+
+    public entrypoint provide_approval_count(_txId: int) : int =
+        let _to_list : list(address * bool) = Map.to_list(state.approval_status[_txId])
+        __get_approval_count(_to_list, 0)
+
+    
+    // add loop execute if require to send multiple with address, amount...
+    // function to add more owners and edit required approvals (conditions if existing owners and their required approvals accepts it)
+    stateful entrypoint execute(_txId: int) =
+        require(_txId < List.length(state.transactions), "Tx id doesn't exist!")
+        require(!List.get(_txId, state.transactions).executed, "Already executed tx id!")
+        
+        require(provide_approval_count(_txId) >= state.approvals_required, "approvals < required")
+
+        let tx_found : transaction = List.get(_txId, state.transactions)
+        
+        let tx_updated : transaction = {
+            to = tx_found.to,
+            value = tx_found.value,
+            data = tx_found.data,
+            executed = true
+            }
+
+        let txs_updated : list(transaction) = List.insert_at(_txId, tx_updated, state.transactions)
+        
+        put(state{transactions = txs_updated})
+        Chain.spend(tx_updated.to, tx_updated.value)
+
+        Chain.event(Execute(_txId))
+
+    stateful entrypoint revoke (_txId: int) =
+        require(List.contains(Call.caller, state.owners), "Not an owner to approve!")
+        require(_txId < List.length(state.transactions), "Tx id doesn't exist!")
+        require(!List.get(_txId, state.transactions).executed, "Already executed tx id!")
+
+        require(state.approval_status[_txId][Call.caller], "Not approved Tx before, by caller!")
+        put(state{approval_status[_txId][Call.caller] = false})
+
+        Chain.event(Revoke(Call.caller, _txId))
+
+
+    // Add get functions (check expiry, price of pack, owners, transaction detail, etc....
+
+    public entrypoint get_buy_function_expiry() : int =
+        state.buy_function_expiry
+    
+    public entrypoint get_booster_pack_price() : int =
+        state.pack_price
+    
+    public entrypoint get_owners() : list(address) =
+        state.owners
+
+    public entrypoint transaction_detail(id: int) : transaction =
+        List.get(id, state.transactions)
+
+
+
