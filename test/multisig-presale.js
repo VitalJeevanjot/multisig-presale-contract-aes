@@ -19,15 +19,8 @@ describe('MULTISIG_PRESALE', () => {
     // initialize the contract instance
     contract = await client.getContractInstance({ source, filesystem });
 
-
-    // // create a snapshot of the blockchain state
-    // await utils.createSnapshot(client);
   });
 
-  // // after each test roll back to initial state
-  // afterEach(async () => {
-  //   await utils.rollbackSnapshot(client);
-  // });
   it('ERR_Deploy: Twice Owners Inserted at deploy', async () => {
     let owners = [
       wallets[0].publicKey,
@@ -62,18 +55,5 @@ describe('MULTISIG_PRESALE', () => {
 
     assert.deepEqual(owners_get.decodedResult, owners);
 
-
-    // const set = await contract.methods.set(42);
-    // assert.equal(set.decodedEvents[0].name, 'SetXEvent');
-    // assert.equal(set.decodedEvents[0].decoded[0], wallets[0].publicKey);
-    // assert.equal(set.decodedEvents[0].decoded[1], 42);
-
-    // const { decodedResult } = await contract.methods.get();
-    // assert.equal(decodedResult, 42);
   });
-
-  // it('ExampleContract: get undefined when not set before', async () => {
-  //   const { decodedResult } = await contract.methods.get();
-  //   assert.equal(decodedResult, undefined);
-  // });
 });
