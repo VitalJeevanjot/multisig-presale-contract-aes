@@ -59,7 +59,7 @@ payable contract MuSigPreOrder =
         Chain.event(Deposit(buyer, Call.value))
 
     stateful entrypoint submit(_address: address, _value: int, _data: bytes(32)) =
-        require(List.contains(_address, state.owners), "Not an owner to submit!")
+        require(List.contains(Call.caller, state.owners), "Not an owner to submit!")
     
         let tx_data : list(transaction) = [{
             to = _address,

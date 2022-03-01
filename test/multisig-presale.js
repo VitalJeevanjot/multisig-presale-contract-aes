@@ -21,24 +21,24 @@ describe('MULTISIG_PRESALE', () => {
 
   });
 
-  // it('ERR_SAME_ADDRESSES___Deploy: Twice Owners Inserted at deploy', async () => {
-  //   const owners = [
-  //     wallets[0].publicKey,
-  //     wallets[1].publicKey,
-  //     wallets[1].publicKey
-  //   ]
+  it('ERR_SAME_ADDRESSES___Deploy: Twice Owners Inserted at deploy', async () => {
+    const owners = [
+      wallets[0].publicKey,
+      wallets[1].publicKey,
+      wallets[1].publicKey
+    ]
 
-  //   let required_approvals = 2
-  //   let extend_expiry_milli = 2592000000 // 30 days
+    let required_approvals = 2
+    let extend_expiry_milli = 2592000000 // 30 days
 
-  //   try {
-  //     await contract.deploy([owners, required_approvals, extend_expiry_milli])
-  //   } catch (err) {
-  //     assert.equal(err.message, 'Invocation failed: "all addresses should be different."')
-  //   }
-  // })
+    try {
+      await contract.deploy([owners, required_approvals, extend_expiry_milli])
+    } catch (err) {
+      assert.equal(err.message, 'Invocation failed: "all addresses should be different."')
+    }
+  })
 
-  it('OK_DIFFERENT_ADDRESSES___Deploy: deploy & get owners', async () => {
+  it('OK___Deploy: deploy & get owners', async () => {
     const owners = [
       wallets[0].publicKey,
       wallets[1].publicKey,
@@ -51,7 +51,7 @@ describe('MULTISIG_PRESALE', () => {
 
     const owners_get = await contract.methods.get_owners()
     const pack_price_get = await contract.methods.get_booster_pack_price()
-    // console.log("Contract deployed as: ")
+    // console.log("Contract deployed address: ")
     // console.log(contract.deployInfo.result.contractId)
 
     // console.log("Owners are... ")
@@ -64,7 +64,7 @@ describe('MULTISIG_PRESALE', () => {
 
   });
 
-  it("OK_AMOUNT___Reserve_Pack", async () => {
+  it("OK___Reserve_Pack", async () => {
     const amount = 79 * 1000000000000000000
     const buyer = wallets[4].publicKey
     const buy_booster_packs = await contract.methods.buy_booster_packs(buyer, { amount: amount })
@@ -112,5 +112,58 @@ describe('MULTISIG_PRESALE', () => {
       assert.equal(err.message, 'Invocation failed: "The Presale is expired!"')
     }
 
+  })
+
+  it("ERR_AFTER_EXPIRY___Reserve_Pack", async () => {
+    const amount = 79 * 1000000000000000000 // ok amount
+    const buyer = wallets[4].publicKey
+    const extend_expiry_milli = 0
+    const required_approvals = 2
+    const owners = [
+      wallets[0].publicKey,
+      wallets[1].publicKey,
+      wallets[2].publicKey
+    ]
+
+    const temp_contract = await client.getContractInstance({ source, filesystem });
+    await temp_contract.deploy([owners, required_approvals, extend_expiry_milli]);
+    try {
+      const buy_booster_packs = await temp_contract.methods.buy_booster_packs(buyer, { amount: amount })
+    } catch (err) {
+      assert.equal(err.message, 'Invocation failed: "The Presale is expired!"')
+    }
+
+  })
+
+  it("OK___Submit_tx", async () => {
+    const receiver = wallets[4].publicKey
+    const value = 15 * 1000000000000000000
+    const data = 0x2130000000000000000000000000000000000000000000000000000000000000
+    // const receiver_balance = await client.getBalance(receiver)
+    // console.log(receiver_balance)
+    const submit = await contract.methods.submit(receiver, value, data)
+    assert.equal(submit.decodedEvents[0].name, "Submit")
+    assert.equal(submit.decodedEvents[0].decoded[0], "0")
+
+    const transaction_detail = await contract.methods.transaction_detail(submit.decodedEvents[0].decoded[0])
+    assert.equal(transaction_detail.decodedResult.to, receiver)
+    assert.equal(transaction_detail.decodedResult.value, value)
+    assert.equal("0x" + Buffer.from(transaction_detail.decodedResult.data).toString('hex'), data)
+  })
+
+  it("ERR_CALLED_BY_NOT_OWNER___Submit_tx", async () => {
+    const receiver = wallets[4].publicKey
+    const value = 15 * 1000000000000000000
+    const data = 0x2130000000000000000000000000000000000000000000000000000000000000
+    // const receiver_balance = await client.getBalance(receiver)
+    // console.log(receiver_balance)
+    const submit = await contract.methods.submit(receiver, value, data)
+    assert.equal(submit.decodedEvents[0].name, "Submit")
+    assert.equal(submit.decodedEvents[0].decoded[0], "0")
+
+    const transaction_detail = await contract.methods.transaction_detail(submit.decodedEvents[0].decoded[0])
+    assert.equal(transaction_detail.decodedResult.to, receiver)
+    assert.equal(transaction_detail.decodedResult.value, value)
+    assert.equal("0x" + Buffer.from(transaction_detail.decodedResult.data).toString('hex'), data)
   })
 });
