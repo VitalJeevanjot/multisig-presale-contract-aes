@@ -24,7 +24,8 @@ payable contract MuSigPreOrder =
         transactions: list(transaction),
         approval_status: map(int, map(address, bool)),
         pack_price: int,
-        buy_function_expiry: int
+        buy_function_expiry: int,
+        user_bought: map(address, int)
         }
 
     function duplicate_not_exist(_addresses: list(address)) : bool =
@@ -37,7 +38,7 @@ payable contract MuSigPreOrder =
             else
                 duplicate_not_exist(remaining_addresses)
 
-    stateful entrypoint init(_owners: list(address) , _required_approvals: int) = 
+    stateful entrypoint init(_owners: list(address) , _required_approvals: int, extend_expiry_milli: int) = 
         require(List.length(_owners) > 1, "more than one, owners required!")
         require(_required_approvals > 1 && _required_approvals =< List.length(_owners) , "certain approvals from owners required!")
         require(duplicate_not_exist(_owners), "all addresses should be different.")
@@ -47,13 +48,15 @@ payable contract MuSigPreOrder =
             transactions = [],
             approval_status = {},
             pack_price = 79 * 1000000000000000000,
-            buy_function_expiry = Chain.timestamp + 2592000000
+            buy_function_expiry = Chain.timestamp + extend_expiry_milli,
+            user_bought = {}
             } 
     
-    payable entrypoint buy_booster_packs() =
+    payable stateful entrypoint buy_booster_packs(buyer: address) =
         require(Call.value == state.pack_price, "Sent less or more AE than the price of booster pack!")
         require(Chain.timestamp < state.buy_function_expiry, "The Presale is expired!")
-        Chain.event(Deposit(Call.caller, Call.value))
+        put(state{user_bought[buyer = 0] @ ub = ub + Call.value})
+        Chain.event(Deposit(buyer, Call.value))
 
     stateful entrypoint submit(_address: address, _value: int, _data: bytes(32)) =
         require(List.contains(_address, state.owners), "Not an owner to submit!")
@@ -132,6 +135,9 @@ payable contract MuSigPreOrder =
 
 
     // Add get functions (check expiry, price of pack, owners, transaction detail, etc....
+
+    public entrypoint get_user_bought(buyer: address) : int =
+        state.user_bought[buyer]
 
     public entrypoint get_buy_function_expiry() : int =
         state.buy_function_expiry
