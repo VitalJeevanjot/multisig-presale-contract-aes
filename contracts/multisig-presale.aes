@@ -77,12 +77,9 @@ payable contract MuSigPreOrder =
         require(List.contains(Call.caller, state.owners), "Not an owner to approve!")
         require(_txId < List.length(state.transactions), "Tx id doesn't exist!")
         require(!Map.lookup_default(Call.caller, Map.lookup_default(_txId, state.approval_status, {}), false), "Already approved tx id!")
-        // require(state.approval_status[_txId][Call.caller = false] == false, "Already approved tx id!") // causes invocation failure, any map value referenced through [] in require causes this error at any level....
         require(!List.get(_txId, state.transactions).executed, "Already executed tx id!")
 
         put(state{approval_status[_txId = {}][Call.caller] = true})
-        // put(state{approval_status[_txId = {}][Call.caller] = true}) "Out of gas" Err...
-        // put(state{approval_status[_txId][Call.caller] = true}) Invocation failed: no Error message....
         Chain.event(Approve(Call.caller, _txId))
 
     function __get_approval_count(_list: list(address * bool), _count: int) : int =

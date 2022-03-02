@@ -28,11 +28,12 @@ describe('MULTISIG_PRESALE', () => {
       wallets[1].publicKey
     ]
 
-    let required_approvals = 2
-    let extend_expiry_milli = 2592000000 // 30 days
+    const required_approvals = 2
+    const extend_expiry_milli = 2592000000 // 30 days
 
     try {
-      await contract.deploy([owners, required_approvals, extend_expiry_milli])
+      const _o = await contract.deploy([owners, required_approvals, extend_expiry_milli])
+      console.log(_o)
     } catch (err) {
       assert.equal(err.message, 'Invocation failed: "all addresses should be different."')
     }
@@ -45,17 +46,12 @@ describe('MULTISIG_PRESALE', () => {
       wallets[2].publicKey
     ]
 
-    let required_approvals = 2
-    let extend_expiry_milli = 2592000000 // 30 days
+    const required_approvals = 2
+    const extend_expiry_milli = 2592000000 // 30 days
     await contract.deploy([owners, required_approvals, extend_expiry_milli]);
 
     const owners_get = await contract.methods.get_owners()
     const pack_price_get = await contract.methods.get_booster_pack_price()
-    // console.log("Contract deployed address: ")
-    // console.log(contract.deployInfo.result.contractId)
-
-    // console.log("Owners are... ")
-    // console.log(owners_get.decodedResult)
 
     const amount = 79 * 1000000000000000000
 
@@ -77,7 +73,8 @@ describe('MULTISIG_PRESALE', () => {
     const amount = 79 * 5000000000000000000
     const buyer = wallets[4].publicKey
     try {
-      const buy_booster_packs = await contract.methods.buy_booster_packs(buyer, { amount: amount })
+      const _o = await contract.methods.buy_booster_packs(buyer, { amount: amount })
+      console.log(_o)
     } catch (err) {
       assert.equal(err.message, 'Invocation failed: "Sent less or more AE than the price of booster pack!"')
     }
@@ -87,7 +84,8 @@ describe('MULTISIG_PRESALE', () => {
     const amount = 79 * 5000000000000000000
     const buyer = wallets[4].publicKey
     try {
-      const buy_booster_packs = await contract.methods.buy_booster_packs(buyer, { amount: amount })
+      const _o = await contract.methods.buy_booster_packs(buyer, { amount: amount })
+      console.log(_o)
     } catch (err) {
       assert.equal(err.message, 'Invocation failed: "Sent less or more AE than the price of booster pack!"')
     }
@@ -107,7 +105,8 @@ describe('MULTISIG_PRESALE', () => {
     const temp_contract = await client.getContractInstance({ source, filesystem });
     await temp_contract.deploy([owners, required_approvals, extend_expiry_milli]);
     try {
-      const buy_booster_packs = await temp_contract.methods.buy_booster_packs(buyer, { amount: amount })
+      const _o = await temp_contract.methods.buy_booster_packs(buyer, { amount: amount })
+      console.log(_o)
     } catch (err) {
       assert.equal(err.message, 'Invocation failed: "The Presale is expired!"')
     }
@@ -116,10 +115,10 @@ describe('MULTISIG_PRESALE', () => {
 
   it("OK___Submit_tx", async () => {
     global.receiver = wallets[4].publicKey
-    global.value = 15 * 1000000000000000000
+    global.value = 15 * 1000000000000000
     global.data = 0x2130000000000000000000000000000000000000000000000000000000000000
-    // const receiver_balance = await client.getBalance(receiver)
-    // console.log(receiver_balance)
+    global.before_receiver_balance = await client.getBalance(receiver)
+    // console.log(before_receiver_balance)
     const submit = await contract.methods.submit(receiver, value, data)
     assert.equal(submit.decodedEvents[0].name, "Submit")
     assert.equal(submit.decodedEvents[0].decoded[0], "0")
@@ -128,8 +127,6 @@ describe('MULTISIG_PRESALE', () => {
     global._submit = await contract.methods.submit(receiver, value, data, { onAccount: wallets[0].publicKey })
     _submit = await contract.methods.submit(receiver, value, data, { onAccount: wallets[1].publicKey })
 
-    receiver = wallets[5].publicKey
-    value = 15 * 123500000000000000000
     data = 0x2130000000000000001000000000000000000000000000000000000000000000
     _submit = await contract.methods.submit(receiver, value, data, { onAccount: wallets[2].publicKey })
     assert.equal(_submit.decodedEvents[0].name, "Submit")
@@ -139,11 +136,15 @@ describe('MULTISIG_PRESALE', () => {
     assert.equal(transaction_detail.decodedResult.to, receiver)
     assert.equal(transaction_detail.decodedResult.value, value)
     assert.equal("0x" + Buffer.from(transaction_detail.decodedResult.data).toString('hex'), data)
+
+    const tx_detail = await contract.methods.transaction_detail(_submit.decodedEvents[0].decoded[0])
+    assert.equal(tx_detail.decodedResult.executed, false)
   })
 
   it("ERR_CALLED_BY_NOT_OWNER___Submit_tx", async () => {
     try {
-      await contract.methods.submit(receiver, value, data, { onAccount: wallets[3].publicKey })
+      const _o = await contract.methods.submit(receiver, value, data, { onAccount: wallets[3].publicKey })
+      console.log(_o)
     } catch (err) {
       assert.equal(err.message, 'Invocation failed: "Not an owner to submit!"')
     }
@@ -155,24 +156,29 @@ describe('MULTISIG_PRESALE', () => {
   })
 
   it("OK___Approve_tx", async () => {
-    const tx_id = 2
-    const approve = await contract.methods.approve(tx_id, { gas: 100000, onAccount: wallets[2].publicKey })
+    const tx_id = 3
+    const approve = await contract.methods.approve(tx_id, { gas: 100000, onAccount: wallets[1].publicKey })
+    // approve one more time from another wallet....
     await contract.methods.approve(tx_id, { gas: 1000000, onAccount: wallets[0].publicKey })
 
     assert.equal(approve.decodedEvents[0].name, "Approve")
-    assert.equal(approve.decodedEvents[0].decoded[0], wallets[2].publicKey)
+    assert.equal(approve.decodedEvents[0].decoded[0], wallets[1].publicKey)
     assert.equal(approve.decodedEvents[0].decoded[1], tx_id)
 
     const approval_count = await contract.methods.provide_approval_count(tx_id)
 
     assert.equal(approval_count.decodedResult, 2)
 
+    const tx_detail = await contract.methods.transaction_detail(tx_id)
+    assert.equal(tx_detail.decodedResult.executed, false)
+
   })
 
   it("ERR_CALLED_BY_NOT_OWNER____Approve_tx", async () => {
-    const tx_id = 2
+    const tx_id = 3
     try {
-      await contract.methods.approve(tx_id, { gasPrice: 1500000000, onAccount: wallets[5].publicKey })
+      const _o = await contract.methods.approve(tx_id, { gasPrice: 1500000000, onAccount: wallets[5].publicKey })
+      console.log(_o)
     } catch (err) {
       assert.equal(err.message, 'Invocation failed: "Not an owner to approve!"')
     }
@@ -181,7 +187,8 @@ describe('MULTISIG_PRESALE', () => {
   it("ERR_NON_EXISTENT_TX_ID____Approve_tx", async () => {
     const tx_id = 6
     try {
-      await contract.methods.approve(tx_id, { gasPrice: 1500000000, onAccount: wallets[2].publicKey })
+      const _o = await contract.methods.approve(tx_id, { gasPrice: 1500000000, onAccount: wallets[2].publicKey })
+      console.log(_o)
     } catch (err) {
       assert.equal(err.message, `Invocation failed: "Tx id doesn't exist!"`)
     }
@@ -189,15 +196,70 @@ describe('MULTISIG_PRESALE', () => {
 
   it("ERR_ALREADY_APPROVED_TX_ID____Approve_tx", async () => {
 
-    const tx_id = 2
+    const tx_id = 3
     try {
-      await contract.methods.approve(tx_id, { gasPrice: 1500000000, onAccount: wallets[2].publicKey })
+      const _o = await contract.methods.approve(tx_id, { gasPrice: 1500000000, onAccount: wallets[1].publicKey })
+      console.log(_o)
     } catch (err) {
       assert.equal(err.message, `Invocation failed: "Already approved tx id!"`)
     }
   })
 
+  it("OK___Execute_tx", async () => {
+    const tx_id = 3
+    const execute = await contract.methods.execute(tx_id)
+    assert.equal(execute.decodedEvents[0].name, "Execute")
+    assert.equal(execute.decodedEvents[0].decoded[0], tx_id)
 
+    global.executed_receiver_balance = await client.getBalance(receiver)
+    const now_value = BigInt(before_receiver_balance) + BigInt(value)
+    assert.equal(executed_receiver_balance, now_value)
+
+    const tx_detail = await contract.methods.transaction_detail(tx_id)
+    assert.equal(tx_detail.decodedResult.executed, true)
+  })
+
+  it("ERR_NON_EXISTENT_TX_ID___Execute_tx", async () => {
+    const tx_id = 8
+    try {
+      const _o = await contract.methods.execute(tx_id)
+      console.log(_o)
+    } catch (err) {
+      assert.equal(err.message, `Invocation failed: "Tx id doesn't exist!"`)
+    }
+  })
+
+  it("ERR_ALREADY_EXECUTED_TX_ID___Execute_tx", async () => {
+    const tx_id = 3
+    try {
+      const _o = await contract.methods.execute(tx_id)
+      console.log(_o)
+    } catch (err) {
+      assert.equal(err.message, `Invocation failed: "Already executed tx id!"`)
+    }
+  })
+
+  it("ERR_LESS_APPROVALS_ON_TX_ID___Execute_tx", async () => {
+    const tx_id = 2 // tx 2 is not approved by anyone above!
+    try {
+      const _o = await contract.methods.approve(tx_id, { gas: 100000, onAccount: wallets[2].publicKey })
+      _o = await contract.methods.execute(tx_id)
+      console.log(_o)
+    } catch (err) {
+      assert.equal(err.message, `Invocation failed: "approvals < required"`)
+    }
+  })
+
+  it("ERR_ALREADY_EXECUTED_TX_TO_APPROVE___approve_tx", async () => {
+    const executed_tx_id = 3
+    try {
+      const _o = await contract.methods.approve(executed_tx_id, { gas: 100000, onAccount: wallets[2].publicKey })
+      console.log(_o)
+    }
+    catch (err) {
+      assert.equal(err.message, `Invocation failed: "Already executed tx id!"`)
+    }
+  })
 
 });
 
