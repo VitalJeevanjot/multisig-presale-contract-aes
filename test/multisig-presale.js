@@ -136,34 +136,72 @@ describe('MULTISIG_PRESALE', () => {
   })
 
   it("OK___Submit_tx", async () => {
-    const receiver = wallets[4].publicKey
-    const value = 15 * 1000000000000000000
-    const data = 0x2130000000000000000000000000000000000000000000000000000000000000
+    global.receiver = wallets[4].publicKey
+    global.value = 15 * 1000000000000000000
+    global.data = 0x2130000000000000000000000000000000000000000000000000000000000000
     // const receiver_balance = await client.getBalance(receiver)
     // console.log(receiver_balance)
     const submit = await contract.methods.submit(receiver, value, data)
     assert.equal(submit.decodedEvents[0].name, "Submit")
     assert.equal(submit.decodedEvents[0].decoded[0], "0")
 
-    const transaction_detail = await contract.methods.transaction_detail(submit.decodedEvents[0].decoded[0])
+    // explicitly calling with owners defined
+    global._submit = await contract.methods.submit(receiver, value, data, { onAccount: wallets[0].publicKey })
+    _submit = await contract.methods.submit(receiver, value, data, { onAccount: wallets[1].publicKey })
+
+    receiver = wallets[5].publicKey
+    value = 15 * 123500000000000000000
+    data = 0x2130000000000000001000000000000000000000000000000000000000000000
+    _submit = await contract.methods.submit(receiver, value, data, { onAccount: wallets[2].publicKey })
+    assert.equal(_submit.decodedEvents[0].name, "Submit")
+    assert.equal(_submit.decodedEvents[0].decoded[0], "3")
+
+    const transaction_detail = await contract.methods.transaction_detail(_submit.decodedEvents[0].decoded[0])
     assert.equal(transaction_detail.decodedResult.to, receiver)
     assert.equal(transaction_detail.decodedResult.value, value)
     assert.equal("0x" + Buffer.from(transaction_detail.decodedResult.data).toString('hex'), data)
   })
 
   it("ERR_CALLED_BY_NOT_OWNER___Submit_tx", async () => {
-    const receiver = wallets[4].publicKey
-    const value = 15 * 1000000000000000000
-    const data = 0x2130000000000000000000000000000000000000000000000000000000000000
-    // const receiver_balance = await client.getBalance(receiver)
-    // console.log(receiver_balance)
-    const submit = await contract.methods.submit(receiver, value, data)
-    assert.equal(submit.decodedEvents[0].name, "Submit")
-    assert.equal(submit.decodedEvents[0].decoded[0], "0")
+    try {
+      await contract.methods.submit(receiver, value, data, { onAccount: wallets[3].publicKey })
+    } catch (err) {
+      assert.equal(err.message, 'Invocation failed: "Not an owner to submit!"')
+    }
 
-    const transaction_detail = await contract.methods.transaction_detail(submit.decodedEvents[0].decoded[0])
+    const transaction_detail = await contract.methods.transaction_detail(_submit.decodedEvents[0].decoded[0])
     assert.equal(transaction_detail.decodedResult.to, receiver)
     assert.equal(transaction_detail.decodedResult.value, value)
     assert.equal("0x" + Buffer.from(transaction_detail.decodedResult.data).toString('hex'), data)
   })
+
+  it("OK___Approve_tx", async () => {
+    const tx_id = 2
+    const approve = await contract.methods.approve(tx_id, { gasPrice: 1500000000, onAccount: wallets[2].publicKey })
+    assert.equal(approve.decodedEvents[0].name, "Approve")
+    assert.equal(approve.decodedEvents[0].decoded[0], wallets[2].publicKey)
+    assert.equal(approve.decodedEvents[0].decoded[1], tx_id)
+
+    const approval_count = await contract.methods.provide_approval_count(tx_id)
+    assert.equal(approval_count.decodedResult, 1)
+
+  })
+
+  it("ERR_CALLED_BY_NOT_OWNER____Approve_tx", async () => {
+    const tx_id = 2
+    try {
+      await contract.methods.approve(tx_id, { gasPrice: 1500000000, onAccount: wallets[5].publicKey })
+    } catch (err) {
+      assert.equal(err.message, 'Invocation failed: "Not an owner to approve!"')
+    }
+  })
+  it("ERR_NON_EXISTENT_TX_ID____Approve_tx", async () => {
+    const tx_id = 6
+    try {
+      await contract.methods.approve(tx_id, { gasPrice: 1500000000, onAccount: wallets[2].publicKey })
+    } catch (err) {
+      assert.equal(err.message, `Invocation failed: "Tx id doesn't exist!"`)
+    }
+  })
+
 });
