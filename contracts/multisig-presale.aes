@@ -127,7 +127,7 @@ payable contract MuSigPreOrder =
         require(!List.get(_txId, state.transactions).executed, "Already executed tx id!")
 
         require(state.approval_status[_txId][Call.caller], "Not approved Tx before, by caller!")
-        put(state{approval_status[_txId][Call.caller] = false})
+        put(state{approval_status[_txId = {}][Call.caller] = false})
 
         Chain.event(Revoke(Call.caller, _txId))
 

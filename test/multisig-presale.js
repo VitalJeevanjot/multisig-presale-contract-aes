@@ -166,7 +166,6 @@ describe('MULTISIG_PRESALE', () => {
     assert.equal(approve.decodedEvents[0].decoded[1], tx_id)
 
     const approval_count = await contract.methods.provide_approval_count(tx_id)
-
     assert.equal(approval_count.decodedResult, 2)
 
     const tx_detail = await contract.methods.transaction_detail(tx_id)
@@ -242,7 +241,7 @@ describe('MULTISIG_PRESALE', () => {
   it("ERR_LESS_APPROVALS_ON_TX_ID___Execute_tx", async () => {
     const tx_id = 2 // tx 2 is not approved by anyone above!
     try {
-      const _o = await contract.methods.approve(tx_id, { gas: 100000, onAccount: wallets[2].publicKey })
+      const _o = await contract.methods.approve(tx_id, { gas: 100000, onAccount: wallets[0].publicKey })
       _o = await contract.methods.execute(tx_id)
       console.log(_o)
     } catch (err) {
@@ -259,6 +258,28 @@ describe('MULTISIG_PRESALE', () => {
     catch (err) {
       assert.equal(err.message, `Invocation failed: "Already executed tx id!"`)
     }
+  })
+
+  it("OK___revoke_tx", async () => {
+    const tx_id = 2
+    const approve = await contract.methods.approve(tx_id, { gas: 100000, onAccount: wallets[1].publicKey })
+
+    assert.equal(approve.decodedEvents[0].name, "Approve")
+    assert.equal(approve.decodedEvents[0].decoded[0], wallets[1].publicKey)
+    assert.equal(approve.decodedEvents[0].decoded[1], tx_id)
+
+    const approval_count = await contract.methods.provide_approval_count(tx_id)
+    assert.equal(approval_count.decodedResult, 2)
+
+
+    const revoke = await contract.methods.revoke(tx_id, { onAccount: wallets[1].publicKey })
+    assert.equal(revoke.decodedEvents[0].name, "Revoke")
+    assert.equal(revoke.decodedEvents[0].decoded[0], wallets[1].publicKey)
+    assert.equal(revoke.decodedEvents[0].decoded[1], tx_id)
+
+    const approval_count_now = await contract.methods.provide_approval_count(tx_id)
+    assert.equal(approval_count_now.decodedResult, 1)
+
   })
 
 });
