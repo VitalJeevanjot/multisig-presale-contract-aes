@@ -114,27 +114,6 @@ describe('MULTISIG_PRESALE', () => {
 
   })
 
-  it("ERR_AFTER_EXPIRY___Reserve_Pack", async () => {
-    const amount = 79 * 1000000000000000000 // ok amount
-    const buyer = wallets[4].publicKey
-    const extend_expiry_milli = 0
-    const required_approvals = 2
-    const owners = [
-      wallets[0].publicKey,
-      wallets[1].publicKey,
-      wallets[2].publicKey
-    ]
-
-    const temp_contract = await client.getContractInstance({ source, filesystem });
-    await temp_contract.deploy([owners, required_approvals, extend_expiry_milli]);
-    try {
-      const buy_booster_packs = await temp_contract.methods.buy_booster_packs(buyer, { amount: amount })
-    } catch (err) {
-      assert.equal(err.message, 'Invocation failed: "The Presale is expired!"')
-    }
-
-  })
-
   it("OK___Submit_tx", async () => {
     global.receiver = wallets[4].publicKey
     global.value = 15 * 1000000000000000000
@@ -177,13 +156,16 @@ describe('MULTISIG_PRESALE', () => {
 
   it("OK___Approve_tx", async () => {
     const tx_id = 2
-    const approve = await contract.methods.approve(tx_id, { gasPrice: 1500000000, onAccount: wallets[2].publicKey })
+    const approve = await contract.methods.approve(tx_id, { gas: 100000, onAccount: wallets[2].publicKey })
+    await contract.methods.approve(tx_id, { gas: 1000000, onAccount: wallets[0].publicKey })
+
     assert.equal(approve.decodedEvents[0].name, "Approve")
     assert.equal(approve.decodedEvents[0].decoded[0], wallets[2].publicKey)
     assert.equal(approve.decodedEvents[0].decoded[1], tx_id)
 
     const approval_count = await contract.methods.provide_approval_count(tx_id)
-    assert.equal(approval_count.decodedResult, 1)
+
+    assert.equal(approval_count.decodedResult, 2)
 
   })
 
@@ -195,6 +177,7 @@ describe('MULTISIG_PRESALE', () => {
       assert.equal(err.message, 'Invocation failed: "Not an owner to approve!"')
     }
   })
+
   it("ERR_NON_EXISTENT_TX_ID____Approve_tx", async () => {
     const tx_id = 6
     try {
@@ -204,4 +187,20 @@ describe('MULTISIG_PRESALE', () => {
     }
   })
 
+  it("ERR_ALREADY_APPROVED_TX_ID____Approve_tx", async () => {
+
+    const tx_id = 2
+    try {
+      await contract.methods.approve(tx_id, { gasPrice: 1500000000, onAccount: wallets[2].publicKey })
+    } catch (err) {
+      assert.equal(err.message, `Invocation failed: "Already approved tx id!"`)
+    }
+  })
+
+
+
 });
+
+// Owners at testnet
+// [ak_KhTZobdWMhs22uJeEpFomdyjvcxuggiJuPxCQsbt1t7BpuFas, ak_5gqPA5Ax5L3F6keczJH3ghp8N1fLAAZgacgyFvJGnPXwazUPE, ak_bZi6o6RuMvj2JnweDAQRvnKMrJaz3BTJAVBMayBu9iijcgrhR]
+// [["ak_KhTZobdWMhs22uJeEpFomdyjvcxuggiJuPxCQsbt1t7BpuFas"], ["ak_5gqPA5Ax5L3F6keczJH3ghp8N1fLAAZgacgyFvJGnPXwazUPE"], ["ak_bZi6o6RuMvj2JnweDAQRvnKMrJaz3BTJAVBMayBu9iijcgrhR"]]

@@ -40,7 +40,7 @@ payable contract MuSigPreOrder =
 
     stateful entrypoint init(_owners: list(address) , _required_approvals: int, extend_expiry_milli: int) = 
         require(List.length(_owners) > 1, "more than one, owners required!")
-        require(_required_approvals > 1 && _required_approvals =< List.length(_owners) , "certain approvals from owners required!")
+        require(_required_approvals > 1 && _required_approvals =< List.length(_owners) , "certain approvals from available owners required!")
         require(duplicate_not_exist(_owners), "all addresses should be different.")
         { owners = _owners,
             is_owner = {},
@@ -77,22 +77,22 @@ payable contract MuSigPreOrder =
         require(List.contains(Call.caller, state.owners), "Not an owner to approve!")
         require(_txId < List.length(state.transactions), "Tx id doesn't exist!")
         require(!Map.lookup_default(Call.caller, Map.lookup_default(_txId, state.approval_status, {}), false), "Already approved tx id!")
-        // require(state.approval_status[_txId][Call.caller = false] == false, "Already approved tx id!") // causes invocation fails, any map value referenced through [] in require causes this error at any level....
+        // require(state.approval_status[_txId][Call.caller = false] == false, "Already approved tx id!") // causes invocation failure, any map value referenced through [] in require causes this error at any level....
         require(!List.get(_txId, state.transactions).executed, "Already executed tx id!")
 
-        put(state{approval_status[_txId] = {[Call.caller] = true}})
+        put(state{approval_status[_txId = {}][Call.caller] = true})
+        // put(state{approval_status[_txId = {}][Call.caller] = true}) "Out of gas" Err...
+        // put(state{approval_status[_txId][Call.caller] = true}) Invocation failed: no Error message....
         Chain.event(Approve(Call.caller, _txId))
 
     function __get_approval_count(_list: list(address * bool), _count: int) : int =
         switch(_list)
-            [] => _count
             (_address, _approved) :: remaining_pairs =>
-                if(_approved)
-                    let count = _count + 1
-                    __get_approval_count(remaining_pairs, count)
+                if(_approved == true)
+                    __get_approval_count(remaining_pairs, _count + 1)
                 else
                     __get_approval_count(remaining_pairs, _count)
-
+            [] => _count
 
 
     public entrypoint provide_approval_count(_txId: int) : int =
