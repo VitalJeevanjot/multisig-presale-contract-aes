@@ -25,7 +25,11 @@ payable contract MuSigPreOrder =
         approval_status: map(int, map(address, bool)),
         pack_price: int,
         buy_function_expiry: int,
-        user_bought: map(address, int)
+        user_bought: map(address, int),
+        turn_off: bool,
+        max_available: int,
+        per_user_availability: int,
+        total_packs_bought: int
         }
 
     function duplicate_not_exist(_addresses: list(address)) : bool =
@@ -38,7 +42,7 @@ payable contract MuSigPreOrder =
             else
                 duplicate_not_exist(remaining_addresses)
 
-    stateful entrypoint init(_owners: list(address) , _required_approvals: int, extend_expiry_milli: int) = 
+    stateful entrypoint init(_owners: list(address) , _required_approvals: int, extend_expiry_milli: int, _max_available: int, _per_user_available: int) = 
         require(List.length(_owners) > 1, "more than one, owners required!")
         require(_required_approvals > 1 && _required_approvals =< List.length(_owners) , "certain approvals from available owners required!")
         require(duplicate_not_exist(_owners), "all addresses should be different.")
@@ -49,13 +53,21 @@ payable contract MuSigPreOrder =
             approval_status = {},
             pack_price = 79 * 10000000000000000,
             buy_function_expiry = Chain.timestamp + extend_expiry_milli,
-            user_bought = {}
+            user_bought = {},
+            turn_off = false,
+            max_available = _max_available,
+            per_user_availability = _per_user_available,
+            total_packs_bought = 0
             } 
     
     payable stateful entrypoint buy_booster_packs(buyer: address) =
         require(Call.value == state.pack_price, "Sent less or more AE than the price of booster pack!")
         require(Chain.timestamp < state.buy_function_expiry, "The Presale is expired!")
+        require(state.turn_off == false, "The reservations are closed!")
+        require(state.max_available > state.total_packs_bought, "The reservation is closed!")
+        require(state.per_user_availability > (state.pack_price / state.user_bought[Call.caller]), "The reservation is closed!")
         put(state{user_bought[buyer = 0] @ ub = ub + Call.value})
+        put(state{total_packs_bought @ a = a + 1})
         Chain.event(Deposit(buyer, Call.value))
 
     stateful entrypoint submit(_address: address, _value: int, _data: bytes(32)) =
@@ -145,6 +157,21 @@ payable contract MuSigPreOrder =
     
     public entrypoint get_owners() : list(address) =
         state.owners
+    
+    public entrypoint how_many_user_bought(addr: address) : int =
+        state.pack_price / state.user_bought[addr]
+
+    public entrypoint total_available_packs() : int =
+        state.max_available
+    
+    public entrypoint total_bought() : int =
+        state.total_packs_bought
+
+    public entrypoint turned_off_buying () : bool =
+        state.turn_off
+
+    public entrypoint per_user_availability () : int =
+        state.per_user_availability
 
     public entrypoint transaction_detail(id: int) : transaction =
         List.get(id, state.transactions)
