@@ -62,7 +62,7 @@ payable contract MuSigPreOrder =
         require(Call.value == state.pack_price, "Sent less or more AE than the price of booster pack!")
         require(Chain.timestamp < state.buy_function_expiry, "The Presale is expired!")
         require(state.max_available > state.total_packs_bought, "Out of reservation period packs!")
-        require(state.per_user_availability > (state.pack_price / Map.lookup_default(Call.caller, state.user_bought, 1)), "The reservation is closed!")
+        require(state.per_user_availability > (state.pack_price / Map.lookup_default(Call.caller, state.user_bought, 1)), "You cannot perform more reservations!")
         put(state{user_bought[buyer = 0] @ ub = ub + Call.value})
         put(state{total_packs_bought @ a = a + 1})
         Chain.event(Deposit(buyer, Call.value))
@@ -163,7 +163,6 @@ payable contract MuSigPreOrder =
     
     public entrypoint total_bought() : int =
         state.total_packs_bought
-
 
     public entrypoint per_user_availability () : int =
         state.per_user_availability

@@ -51,14 +51,16 @@ describe('MULTISIG_PRESALE', () => {
     const required_approvals = 2
     const extend_expiry_milli = 2592000000 // 30 days
     const max_available = 200
-    const per_user_available = 5
+
+    const amount = 79 * 10000000000000000
+    const per_user_available = 5 * amount
+
 
     await contract.deploy([owners, required_approvals, extend_expiry_milli, max_available, per_user_available])
 
     const owners_get = await contract.methods.get_owners()
     const pack_price_get = await contract.methods.get_booster_pack_price()
 
-    const amount = 79 * 10000000000000000
 
     assert.deepEqual(owners_get.decodedResult, owners);
     assert.equal(pack_price_get.decodedResult, amount)
@@ -107,8 +109,11 @@ describe('MULTISIG_PRESALE', () => {
       wallets[2].publicKey
     ]
 
+    const max_available = 200
+    const per_user_available = 5 * amount
+
     const temp_contract = await client.getContractInstance({ source, filesystem });
-    await temp_contract.deploy([owners, required_approvals, extend_expiry_milli]);
+    await temp_contract.deploy([owners, required_approvals, extend_expiry_milli, max_available, per_user_available]);
     try {
       const _o = await temp_contract.methods.buy_booster_packs(buyer, { amount: amount })
       console.log(_o)
