@@ -47,7 +47,7 @@ payable contract MuSigPreOrder =
             approvals_required = _required_approvals,
             transactions = [],
             approval_status = {},
-            pack_price = 79 * 1000000000000000000,
+            pack_price = 79 * 10000000000000000,
             buy_function_expiry = Chain.timestamp + extend_expiry_milli,
             user_bought = {}
             } 

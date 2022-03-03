@@ -53,7 +53,7 @@ describe('MULTISIG_PRESALE', () => {
     const owners_get = await contract.methods.get_owners()
     const pack_price_get = await contract.methods.get_booster_pack_price()
 
-    const amount = 79 * 1000000000000000000
+    const amount = 79 * 10000000000000000
 
     assert.deepEqual(owners_get.decodedResult, owners);
     assert.equal(pack_price_get.decodedResult, amount)
@@ -61,7 +61,7 @@ describe('MULTISIG_PRESALE', () => {
   });
 
   it("OK___Reserve_Pack", async () => {
-    const amount = 79 * 1000000000000000000
+    const amount = 79 * 10000000000000000
     const buyer = wallets[4].publicKey
     const buy_booster_packs = await contract.methods.buy_booster_packs(buyer, { amount: amount })
     assert.equal(buy_booster_packs.decodedEvents[0].name, "Deposit")
@@ -92,7 +92,7 @@ describe('MULTISIG_PRESALE', () => {
   })
 
   it("ERR_AFTER_EXPIRY___Reserve_Pack", async () => {
-    const amount = 79 * 1000000000000000000 // ok amount
+    const amount = 79 * 10000000000000000 // ok amount
     const buyer = wallets[4].publicKey
     const extend_expiry_milli = 0
     const required_approvals = 2
