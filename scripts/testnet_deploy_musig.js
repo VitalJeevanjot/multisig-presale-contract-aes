@@ -36,8 +36,12 @@ async function init () {
   const reqiored_approvals = 2
   const extend_expiry_milli = 2592000000 // 30 days
 
+  const max_available = 200
 
-  const tx = await musig_presale_Instance.deploy([owners_arr, reqiored_approvals, extend_expiry_milli])
+  const per_user_available = 5
+
+
+  const tx = await musig_presale_Instance.deploy([owners_arr, reqiored_approvals, extend_expiry_milli, max_available, per_user_available])
 
   console.log(tx)
 }

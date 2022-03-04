@@ -285,6 +285,7 @@ describe('MULTISIG_PRESALE', () => {
 
     const tx_detail = await contract.methods.transaction_detail(tx_id)
     assert.equal(tx_detail.decodedResult.executed, true)
+
   })
 
   it("ERR_NON_EXISTENT_TX_ID___Execute_tx", async () => {
@@ -310,7 +311,7 @@ describe('MULTISIG_PRESALE', () => {
   it("ERR_LESS_APPROVALS_ON_TX_ID___Execute_tx", async () => {
     const tx_id = 2 // tx 2 is not approved by anyone above!
     try {
-      const _o = await contract.methods.approve(tx_id, { gas: 100000, onAccount: wallets[0].publicKey })
+      let _o = await contract.methods.approve(tx_id, { gas: 100000, onAccount: wallets[0].publicKey })
       _o = await contract.methods.execute(tx_id)
       console.log(_o)
     } catch (err) {
@@ -330,24 +331,81 @@ describe('MULTISIG_PRESALE', () => {
   })
 
   it("OK___revoke_tx", async () => {
-    const tx_id = 2
+    const tx_id = 2 // already approved once in "ERR_LESS_APPROVALS_ON_TX_ID___Execute_tx" test
     const approve = await contract.methods.approve(tx_id, { gas: 100000, onAccount: wallets[1].publicKey })
+    const _approve = await contract.methods.approve(tx_id, { gas: 100000, onAccount: wallets[2].publicKey })
 
     assert.equal(approve.decodedEvents[0].name, "Approve")
     assert.equal(approve.decodedEvents[0].decoded[0], wallets[1].publicKey)
     assert.equal(approve.decodedEvents[0].decoded[1], tx_id)
 
+    assert.equal(_approve.decodedEvents[0].name, "Approve")
+    assert.equal(_approve.decodedEvents[0].decoded[0], wallets[2].publicKey)
+    assert.equal(_approve.decodedEvents[0].decoded[1], tx_id)
+
     const approval_count = await contract.methods.provide_approval_count(tx_id)
-    assert.equal(approval_count.decodedResult, 2)
+    assert.equal(approval_count.decodedResult, 3)
 
 
-    const revoke = await contract.methods.revoke(tx_id, { onAccount: wallets[1].publicKey })
+    const revoke = await contract.methods.revoke(tx_id, { onAccount: wallets[0].publicKey })
     assert.equal(revoke.decodedEvents[0].name, "Revoke")
-    assert.equal(revoke.decodedEvents[0].decoded[0], wallets[1].publicKey)
+    assert.equal(revoke.decodedEvents[0].decoded[0], wallets[0].publicKey)
     assert.equal(revoke.decodedEvents[0].decoded[1], tx_id)
+
+    const _revoke = await contract.methods.revoke(tx_id, { onAccount: wallets[1].publicKey })
+    assert.equal(_revoke.decodedEvents[0].name, "Revoke")
+    assert.equal(_revoke.decodedEvents[0].decoded[0], wallets[1].publicKey)
+    assert.equal(_revoke.decodedEvents[0].decoded[1], tx_id)
 
     const approval_count_now = await contract.methods.provide_approval_count(tx_id)
     assert.equal(approval_count_now.decodedResult, 1)
+
+  })
+
+  it("ERR_APPROVAL_REVOKED_ON_TX_ID___Execute_tx", async () => {
+    const tx_id = 2 // tx 2 is revoked by wallet 0 & 1 above in "OK___revoke_tx" test (total 1 approval now)!
+    try {
+      const _o = await contract.methods.execute(tx_id)
+      console.log(_o)
+    } catch (err) {
+      assert.equal(err.message, `Invocation failed: "approvals < required"`)
+    }
+  })
+
+  it("OK_APPROVED_AGAIN___Approve_Execute_tx", async () => {
+    const tx_id = 2 // Approved by wallet 1 (to be here again) & 2. Now to perform & test both operations...
+    const _approval_status_now = await contract.methods.approval_status(tx_id, { gas: 150000 })
+    assert.equal(_approval_status_now.decodedResult.get(wallets[0].publicKey), false)
+    assert.equal(_approval_status_now.decodedResult.get(wallets[1].publicKey), false)
+    assert.equal(_approval_status_now.decodedResult.get(wallets[2].publicKey), true)
+
+    const approve = await contract.methods.approve(tx_id, { gas: 150000, gasPrice: 3500000000, onAccount: wallets[1].publicKey })
+
+    assert.equal(approve.decodedEvents[0].name, "Approve")
+    assert.equal(approve.decodedEvents[0].decoded[0], wallets[1].publicKey)
+    assert.equal(approve.decodedEvents[0].decoded[1], tx_id)
+
+    const approval_count_now = await contract.methods.provide_approval_count(tx_id, { gas: 150000 })
+    assert.equal(approval_count_now.decodedResult, 2)
+
+    const approval_status_now = await contract.methods.approval_status(tx_id, { gas: 150000 })
+    assert.equal(approval_status_now.decodedResult.get(wallets[0].publicKey), false)
+    assert.equal(approval_status_now.decodedResult.get(wallets[1].publicKey), true)
+    assert.equal(approval_status_now.decodedResult.get(wallets[2].publicKey), true)
+
+
+    global.before_receiver_balance = await client.getBalance(receiver)
+
+    const execute = await contract.methods.execute(tx_id, { gas: 150000 })
+    assert.equal(execute.decodedEvents[0].name, "Execute")
+    assert.equal(execute.decodedEvents[0].decoded[0], tx_id)
+
+    executed_receiver_balance = await client.getBalance(receiver)
+    const now_value = BigInt(before_receiver_balance) + BigInt(value)
+    assert.equal(executed_receiver_balance, now_value)
+
+    const tx_detail = await contract.methods.transaction_detail(tx_id, { gas: 150000 })
+    assert.equal(tx_detail.decodedResult.executed, true)
 
   })
 

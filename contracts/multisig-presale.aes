@@ -143,7 +143,7 @@ payable contract MuSigPreOrder =
 
     // Add get functions (check expiry, price of pack, owners, transaction detail, etc....
 
-    public entrypoint get_user_bought(buyer: address) : int =
+    public entrypoint get_user_spendings(buyer: address) : int =
         state.user_bought[buyer]
 
     public entrypoint get_buy_function_expiry() : int =
@@ -169,6 +169,9 @@ payable contract MuSigPreOrder =
 
     public entrypoint transaction_detail(id: int) : transaction =
         List.get(id, state.transactions)
+
+    public entrypoint approval_status(id: int) : map(address, bool) =
+        state.approval_status[id]
 
 
 
