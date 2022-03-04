@@ -53,7 +53,7 @@ describe('MULTISIG_PRESALE', () => {
     const max_available = 200
 
     const amount = 79 * 10000000000000000
-    const per_user_available = 5 * amount
+    const per_user_available = 5
 
 
     await contract.deploy([owners, required_approvals, extend_expiry_milli, max_available, per_user_available])
@@ -121,6 +121,27 @@ describe('MULTISIG_PRESALE', () => {
       assert.equal(err.message, 'Invocation failed: "The Presale is expired!"')
     }
 
+  })
+
+  it("ERR_BUYING_MORE_THAN_AVAILABLE_PER_USER___Reserve_Pack", async () => {
+    const amount = 79 * 10000000000000000
+    const buyer = wallets[6].publicKey
+    let index = null
+    for (index = 0; index < 5; index++) {
+      const _o = await contract.methods.buy_booster_packs(buyer, { amount: amount, onAccount: buyer })
+      assert.equal(_o.decodedEvents[0].name, "Deposit")
+      assert.equal(_o.decodedEvents[0].decoded[0], buyer)
+      assert.equal(_o.decodedEvents[0].decoded[1], amount)
+    }
+    assert.equal(index, 5)
+    try {
+      const _o = await contract.methods.buy_booster_packs(buyer, { amount: amount, onAccount: buyer })
+      const _o_ = await contract.methods.how_many_user_bought(buyer)
+      console.log(_o.decodedEvents)
+      console.log(_o_.decodedResult)
+    } catch (err) {
+      assert.equal(err.message, 'Invocation failed: "You cannot perform more reservations!"')
+    }
   })
 
   it("OK___Submit_tx", async () => {
