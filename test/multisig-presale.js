@@ -123,6 +123,44 @@ describe('MULTISIG_PRESALE', () => {
 
   })
 
+
+  it("ERR_AFTER_ALL_ARE_RESERVERED___Reserve_Pack", async () => {
+    const amount = 79 * 10000000000000000 // ok amount
+    const buyer = wallets[4].publicKey
+    const extend_expiry_milli = 2592000000 // ok extend time
+    const required_approvals = 2
+    const owners = [
+      wallets[0].publicKey,
+      wallets[1].publicKey,
+      wallets[2].publicKey
+    ]
+
+    const max_available = 1
+    const per_user_available = 5 * amount
+
+    const temp_contract = await client.getContractInstance({ source, filesystem });
+    await temp_contract.deploy([owners, required_approvals, extend_expiry_milli, max_available, per_user_available]);
+
+    const o = await temp_contract.methods.total_bought()
+    const o_ = await temp_contract.methods.total_available_packs()
+    assert.equal(o.decodedResult, parseInt(o_.decodedResult) - 1)
+
+    const _o_ = await temp_contract.methods.buy_booster_packs(buyer, { amount: amount })
+    const __o_ = await temp_contract.methods.total_available_packs()
+    const __o__ = await temp_contract.methods.total_bought()
+    assert.equal(_o_.decodedEvents[0].name, "Deposit")
+    assert.equal(_o_.decodedEvents[0].decoded[0], buyer)
+    assert.equal(_o_.decodedEvents[0].decoded[1], amount)
+    assert.equal(__o_.decodedResult, __o__.decodedResult)
+    try {
+      const _o = await temp_contract.methods.buy_booster_packs(buyer, { amount: amount })
+      console.log(_o)
+    } catch (err) {
+      assert.equal(err.message, 'Invocation failed: "Out of reservation period packs!"')
+    }
+
+  })
+
   it("ERR_BUYING_MORE_THAN_AVAILABLE_PER_USER___Reserve_Pack", async () => {
     const amount = 79 * 10000000000000000
     const buyer = wallets[6].publicKey
@@ -134,11 +172,11 @@ describe('MULTISIG_PRESALE', () => {
       assert.equal(_o.decodedEvents[0].decoded[1], amount)
     }
     assert.equal(index, 5)
+
+    const _o_ = await contract.methods.how_many_user_bought(buyer)
+    assert.equal(_o_.decodedResult, 5)
     try {
       const _o = await contract.methods.buy_booster_packs(buyer, { amount: amount, onAccount: buyer })
-      const _o_ = await contract.methods.how_many_user_bought(buyer)
-      console.log(_o.decodedEvents)
-      console.log(_o_.decodedResult)
     } catch (err) {
       assert.equal(err.message, 'Invocation failed: "You cannot perform more reservations!"')
     }
