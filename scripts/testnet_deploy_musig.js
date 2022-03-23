@@ -33,15 +33,15 @@ async function init () {
     process.env.TESTNET_PUBLIC_KEY_2
   ]
 
-  const reqiored_approvals = 2
+  const required_approvals = 2
   const extend_expiry_milli = 2592000000 // 30 days
 
-  const max_available = 200
+  const max_available = 2000
 
-  const per_user_available = 5
+  const per_user_available = 500
 
 
-  const tx = await musig_presale_Instance.deploy([owners_arr, reqiored_approvals, extend_expiry_milli, max_available, per_user_available])
+  const tx = await musig_presale_Instance.deploy([owners_arr, required_approvals, extend_expiry_milli, max_available, per_user_available])
 
   console.log(tx)
 }

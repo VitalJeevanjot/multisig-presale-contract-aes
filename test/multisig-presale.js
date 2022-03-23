@@ -52,7 +52,7 @@ describe('MULTISIG_PRESALE', () => {
     const extend_expiry_milli = 2592000000 // 30 days
     const max_available = 200
 
-    const amount = 79 * 10000000000000000
+    const amount = 79 * 1000000000000000
     const per_user_available = 5
 
 
@@ -68,7 +68,7 @@ describe('MULTISIG_PRESALE', () => {
   });
 
   it("OK___Reserve_Pack", async () => {
-    const amount = 79 * 10000000000000000
+    const amount = 79 * 1000000000000000
     const buyer = wallets[4].publicKey
     const buy_booster_packs = await contract.methods.buy_booster_packs(buyer, { amount: amount })
     assert.equal(buy_booster_packs.decodedEvents[0].name, "Deposit")
@@ -99,7 +99,7 @@ describe('MULTISIG_PRESALE', () => {
   })
 
   it("ERR_AFTER_EXPIRY___Reserve_Pack", async () => {
-    const amount = 79 * 10000000000000000 // ok amount
+    const amount = 79 * 1000000000000000 // ok amount
     const buyer = wallets[4].publicKey
     const extend_expiry_milli = 0
     const required_approvals = 2
@@ -125,7 +125,7 @@ describe('MULTISIG_PRESALE', () => {
 
 
   it("ERR_AFTER_ALL_ARE_RESERVERED___Reserve_Pack", async () => {
-    const amount = 79 * 10000000000000000 // ok amount
+    const amount = 79 * 1000000000000000 // ok amount
     const buyer = wallets[4].publicKey
     const extend_expiry_milli = 2592000000 // ok extend time
     const required_approvals = 2
@@ -162,7 +162,7 @@ describe('MULTISIG_PRESALE', () => {
   })
 
   it("ERR_BUYING_MORE_THAN_AVAILABLE_PER_USER___Reserve_Pack", async () => {
-    const amount = 79 * 10000000000000000
+    const amount = 79 * 1000000000000000
     const buyer = wallets[6].publicKey
     let index = null
     for (index = 0; index < 5; index++) {
@@ -196,7 +196,7 @@ describe('MULTISIG_PRESALE', () => {
     global._submit = await contract.methods.submit(receiver, value, data, { onAccount: wallets[0].publicKey })
     _submit = await contract.methods.submit(receiver, value, data, { onAccount: wallets[1].publicKey })
 
-    data = 0x2130000000000000001000000000000000000000000000000000000000000000
+    data = 0x213000000000000000100000000000000000000000000000000000000000000
     _submit = await contract.methods.submit(receiver, value, data, { onAccount: wallets[2].publicKey })
     assert.equal(_submit.decodedEvents[0].name, "Submit")
     assert.equal(_submit.decodedEvents[0].decoded[0], "3")

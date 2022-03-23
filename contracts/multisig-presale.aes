@@ -50,7 +50,7 @@ payable contract MuSigPreOrder =
             approvals_required = _required_approvals,
             transactions = [],
             approval_status = {},
-            pack_price = 79 * 10000000000000000,
+            pack_price = 79 * 1000000000000000,
             buy_function_expiry = Chain.timestamp + extend_expiry_milli,
             user_bought = {},
             max_available = _max_available,
@@ -172,6 +172,23 @@ payable contract MuSigPreOrder =
 
     public entrypoint approval_status(id: int) : map(address, bool) =
         state.approval_status[id]
+    
+    record front_end_data = {
+        total_bought: int,
+        total_available_packs: int,
+        get_buy_function_expiry: int,
+        how_many_user_bought: int,
+        per_user_availability: int
+     }
+
+    public entrypoint all_required_data(): front_end_data =
+        {
+            total_bought = total_bought(),
+            total_available_packs = total_available_packs(),
+            get_buy_function_expiry = get_buy_function_expiry(),
+            how_many_user_bought = how_many_user_bought(Call.caller),
+            per_user_availability = per_user_availability()
+         }
 
 
 
