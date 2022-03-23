@@ -156,7 +156,7 @@ payable contract MuSigPreOrder =
         state.owners
     
     public entrypoint how_many_user_bought(addr: address) : int =
-        state.user_bought[addr] / state.pack_price
+        Map.lookup_default(addr, state.user_bought, 0) / state.pack_price
 
     public entrypoint total_available_packs() : int =
         state.max_available
@@ -189,6 +189,3 @@ payable contract MuSigPreOrder =
             how_many_user_bought = how_many_user_bought(Call.caller),
             per_user_availability = per_user_availability()
          }
-
-
-
