@@ -19,6 +19,7 @@ payable contract MuSigPreOrder =
 
     record state = {
         owners : list(address), 
+        ratio : list(int), 
         is_owner : map(address, bool), 
         approvals_required: int,
         transactions: list(transaction),
@@ -41,11 +42,15 @@ payable contract MuSigPreOrder =
             else
                 duplicate_not_exist(remaining_addresses)
 
-    stateful entrypoint init(_owners: list(address) , _required_approvals: int, extend_expiry_milli: int, _max_available: int, _per_user_available: int) = 
+    stateful entrypoint init(_owners: list(address), _ratio: list(int), _required_approvals: int, extend_expiry_milli: int, _max_available: int, _per_user_available: int) = 
         require(List.length(_owners) > 1, "more than one, owners required!")
+        require(List.length(_owners) == List.length(_ratio), "ratio should be defined for each owner!")
+        require(List.find((x) => x > 100, _ratio) == None, "ratio should be less than 100!")
+        require(List.find((x) => x < 1, _ratio) == None, "ratio should be greater than 1!")
         require(_required_approvals > 1 && _required_approvals =< List.length(_owners) , "certain approvals from available owners required!")
         require(duplicate_not_exist(_owners), "all addresses should be different.")
         { owners = _owners,
+            ratio = _ratio,
             is_owner = {},
             approvals_required = _required_approvals,
             transactions = [],
@@ -65,7 +70,20 @@ payable contract MuSigPreOrder =
         require(state.per_user_availability > (Map.lookup_default(Call.caller, state.user_bought, 1) / state.pack_price), "You cannot perform more reservations!")
         put(state{user_bought[buyer = 0] @ ub = ub + Call.value})
         put(state{total_packs_bought @ a = a + 1})
+        manage_divide_and_send_ae(state.owners, 0)
         Chain.event(Deposit(buyer, Call.value))
+
+    stateful function manage_divide_and_send_ae(holders: list(address), i: int) =
+        // can be called by anyone
+        switch(holders)
+            [] => ()
+            (one_holder) :: remaining_holders =>
+                // send staked percentage from total ae in the contract to all holders.
+                divide_and_send_ae(one_holder, List.get(i, state.ratio))
+                manage_divide_and_send_ae(remaining_holders, i+1)
+
+    stateful function divide_and_send_ae(one_holder: address, one_balance: int) =
+        Chain.spend(one_holder, (Contract.balance / 100) * one_balance)
 
     stateful entrypoint submit(_address: address, _value: int, _data: bytes(32)) =
         require(List.contains(Call.caller, state.owners), "Not an owner to submit!")
@@ -104,7 +122,7 @@ payable contract MuSigPreOrder =
     public entrypoint provide_approval_count(_txId: int) : int =
         let _to_list : list(address * bool) = Map.to_list(state.approval_status[_txId])
         __get_approval_count(_to_list, 0)
-
+        
     
     // add loop execute if require to send multiple with address, amount...
     // function to add more owners and edit required approvals (conditions if existing owners and their required approvals accepts it)

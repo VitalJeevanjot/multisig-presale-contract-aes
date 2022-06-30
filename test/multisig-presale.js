@@ -33,8 +33,10 @@ describe('MULTISIG_PRESALE', () => {
     const max_available = 200
     const per_user_available = 5
 
+    const ratio = [43, 43, 14]
+
     try {
-      const _o = await contract.deploy([owners, required_approvals, extend_expiry_milli, max_available, per_user_available])
+      const _o = await contract.deploy([owners, ratio, required_approvals, extend_expiry_milli, max_available, per_user_available])
       console.log(_o)
     } catch (err) {
       assert.equal(err.message, 'Invocation failed: "all addresses should be different."')
@@ -55,8 +57,10 @@ describe('MULTISIG_PRESALE', () => {
     const amount = 79 * 1000000000000000
     const per_user_available = 5
 
+    const ratio = [43, 43, 14]
 
-    await contract.deploy([owners, required_approvals, extend_expiry_milli, max_available, per_user_available])
+
+    await contract.deploy([owners, ratio, required_approvals, extend_expiry_milli, max_available, per_user_available])
 
     const owners_get = await contract.methods.get_owners()
     const pack_price_get = await contract.methods.get_booster_pack_price()
@@ -112,8 +116,10 @@ describe('MULTISIG_PRESALE', () => {
     const max_available = 200
     const per_user_available = 5 * amount
 
+    const ratio = [43, 43, 14]
+
     const temp_contract = await client.getContractInstance({ source, filesystem });
-    await temp_contract.deploy([owners, required_approvals, extend_expiry_milli, max_available, per_user_available]);
+    await temp_contract.deploy([owners, ratio, required_approvals, extend_expiry_milli, max_available, per_user_available]);
     try {
       const _o = await temp_contract.methods.buy_booster_packs(buyer, { amount: amount })
       console.log(_o)
@@ -138,8 +144,10 @@ describe('MULTISIG_PRESALE', () => {
     const max_available = 1
     const per_user_available = 5 * amount
 
+    const ratio = [43, 43, 14]
+
     const temp_contract = await client.getContractInstance({ source, filesystem });
-    await temp_contract.deploy([owners, required_approvals, extend_expiry_milli, max_available, per_user_available]);
+    await temp_contract.deploy([owners, ratio, required_approvals, extend_expiry_milli, max_available, per_user_available]);
 
     const o = await temp_contract.methods.total_bought()
     const o_ = await temp_contract.methods.total_available_packs()
