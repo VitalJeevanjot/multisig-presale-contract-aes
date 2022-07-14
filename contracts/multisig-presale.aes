@@ -68,16 +68,15 @@ payable contract MuSigPreOrder =
         require(Chain.timestamp < state.buy_function_expiry, "The Presale is expired!")
         require(state.max_available > state.total_packs_bought, "Out of reservation period packs!")
         require(state.per_user_availability > (Map.lookup_default(Call.caller, state.user_bought, 1) / state.pack_price), "You cannot perform more reservations!")
+        manage_divide_and_send_ae(state.owners, 0)
         put(state{user_bought[buyer = 0] @ ub = ub + Call.value})
         put(state{total_packs_bought @ a = a + 1})
-        manage_divide_and_send_ae(state.owners, 0)
         Chain.event(Deposit(buyer, Call.value))
 
     stateful function manage_divide_and_send_ae(holders: list(address), i: int) =
-        // can be called by anyone
         switch(holders)
             [] => ()
-            (one_holder) :: remaining_holders =>
+            (one_holder :: remaining_holders) =>
                 // send staked percentage from total ae in the contract to all holders.
                 divide_and_send_ae(one_holder, List.get(i, state.ratio))
                 manage_divide_and_send_ae(remaining_holders, i+1)
@@ -98,6 +97,10 @@ payable contract MuSigPreOrder =
         put(state{transactions @ txs = txs ++ tx_data})
         let _index : int = List.length(state.transactions) - 1
         Chain.event(Submit(_index))
+
+
+    payable stateful entrypoint sendTestValue(): int =
+        Call.value
 
     
     public stateful entrypoint approve(_txId: int) =
@@ -172,6 +175,9 @@ payable contract MuSigPreOrder =
     
     public entrypoint get_owners() : list(address) =
         state.owners
+
+    public entrypoint get_owners_ratios() : list(int) =
+        state.ratio
     
     public entrypoint how_many_user_bought(addr: address) : int =
         Map.lookup_default(addr, state.user_bought, 0) / state.pack_price

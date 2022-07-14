@@ -33,7 +33,7 @@ describe('MULTISIG_PRESALE', () => {
     const max_available = 200
     const per_user_available = 5
 
-    const ratio = [43, 43, 14]
+    const ratio = [15, 50, 100]
 
     try {
       const _o = await contract.deploy([owners, ratio, required_approvals, extend_expiry_milli, max_available, per_user_available])
@@ -57,7 +57,7 @@ describe('MULTISIG_PRESALE', () => {
     const amount = 79 * 1000000000000000
     const per_user_available = 5
 
-    const ratio = [43, 43, 14]
+    const ratio = [15, 50, 100]
 
 
     await contract.deploy([owners, ratio, required_approvals, extend_expiry_milli, max_available, per_user_available])
@@ -74,7 +74,7 @@ describe('MULTISIG_PRESALE', () => {
   it("OK___Reserve_Pack", async () => {
     const amount = 79 * 1000000000000000
     const buyer = wallets[4].publicKey
-    const buy_booster_packs = await contract.methods.buy_booster_packs(buyer, { amount: amount })
+    const buy_booster_packs = await contract.methods.buy_booster_packs(buyer, { amount: amount, gas: 100000 })
     assert.equal(buy_booster_packs.decodedEvents[0].name, "Deposit")
     assert.equal(buy_booster_packs.decodedEvents[0].decoded[0], buyer)
     assert.equal(buy_booster_packs.decodedEvents[0].decoded[1], amount)
@@ -84,7 +84,7 @@ describe('MULTISIG_PRESALE', () => {
     const amount = 79 * 5000000000000000000
     const buyer = wallets[4].publicKey
     try {
-      const _o = await contract.methods.buy_booster_packs(buyer, { amount: amount })
+      const _o = await contract.methods.buy_booster_packs(buyer, { amount: amount, gas: 100000 })
       console.log(_o)
     } catch (err) {
       assert.equal(err.message, 'Invocation failed: "Sent less or more AE than the price of booster pack!"')
@@ -95,7 +95,7 @@ describe('MULTISIG_PRESALE', () => {
     const amount = 79 * 5000000000000000000
     const buyer = wallets[4].publicKey
     try {
-      const _o = await contract.methods.buy_booster_packs(buyer, { amount: amount })
+      const _o = await contract.methods.buy_booster_packs(buyer, { amount: amount, gas: 100000 })
       console.log(_o)
     } catch (err) {
       assert.equal(err.message, 'Invocation failed: "Sent less or more AE than the price of booster pack!"')
@@ -116,12 +116,12 @@ describe('MULTISIG_PRESALE', () => {
     const max_available = 200
     const per_user_available = 5 * amount
 
-    const ratio = [43, 43, 14]
+    const ratio = [15, 50, 100]
 
     const temp_contract = await client.getContractInstance({ source, filesystem });
     await temp_contract.deploy([owners, ratio, required_approvals, extend_expiry_milli, max_available, per_user_available]);
     try {
-      const _o = await temp_contract.methods.buy_booster_packs(buyer, { amount: amount })
+      const _o = await temp_contract.methods.buy_booster_packs(buyer, { amount: amount, gas: 100000 })
       console.log(_o)
     } catch (err) {
       assert.equal(err.message, 'Invocation failed: "The Presale is expired!"')
@@ -144,7 +144,7 @@ describe('MULTISIG_PRESALE', () => {
     const max_available = 1
     const per_user_available = 5 * amount
 
-    const ratio = [43, 43, 14]
+    const ratio = [15, 50, 100]
 
     const temp_contract = await client.getContractInstance({ source, filesystem });
     await temp_contract.deploy([owners, ratio, required_approvals, extend_expiry_milli, max_available, per_user_available]);
@@ -153,7 +153,7 @@ describe('MULTISIG_PRESALE', () => {
     const o_ = await temp_contract.methods.total_available_packs()
     assert.equal(o.decodedResult, parseInt(o_.decodedResult) - 1)
 
-    const _o_ = await temp_contract.methods.buy_booster_packs(buyer, { amount: amount })
+    const _o_ = await temp_contract.methods.buy_booster_packs(buyer, { amount: amount, gas: 100000 })
     const __o_ = await temp_contract.methods.total_available_packs()
     const __o__ = await temp_contract.methods.total_bought()
     assert.equal(_o_.decodedEvents[0].name, "Deposit")
@@ -161,7 +161,7 @@ describe('MULTISIG_PRESALE', () => {
     assert.equal(_o_.decodedEvents[0].decoded[1], amount)
     assert.equal(__o_.decodedResult, __o__.decodedResult)
     try {
-      const _o = await temp_contract.methods.buy_booster_packs(buyer, { amount: amount })
+      const _o = await temp_contract.methods.buy_booster_packs(buyer, { amount: amount, gas: 100000 })
       console.log(_o)
     } catch (err) {
       assert.equal(err.message, 'Invocation failed: "Out of reservation period packs!"')
@@ -174,7 +174,7 @@ describe('MULTISIG_PRESALE', () => {
     const buyer = wallets[6].publicKey
     let index = null
     for (index = 0; index < 5; index++) {
-      const _o = await contract.methods.buy_booster_packs(buyer, { amount: amount, onAccount: buyer })
+      const _o = await contract.methods.buy_booster_packs(buyer, { amount: amount, onAccount: buyer, gas: 100000 })
       assert.equal(_o.decodedEvents[0].name, "Deposit")
       assert.equal(_o.decodedEvents[0].decoded[0], buyer)
       assert.equal(_o.decodedEvents[0].decoded[1], amount)
@@ -184,7 +184,7 @@ describe('MULTISIG_PRESALE', () => {
     const _o_ = await contract.methods.how_many_user_bought(buyer)
     assert.equal(_o_.decodedResult, 5)
     try {
-      const _o = await contract.methods.buy_booster_packs(buyer, { amount: amount, onAccount: buyer })
+      const _o = await contract.methods.buy_booster_packs(buyer, { amount: amount, onAccount: buyer, gas: 100000 })
     } catch (err) {
       assert.equal(err.message, 'Invocation failed: "You cannot perform more reservations!"')
     }
@@ -281,9 +281,17 @@ describe('MULTISIG_PRESALE', () => {
     }
   })
 
+  // before execution send dummy amount because the amount is already transfered before when one bought the packet.
+  it('OK___Send_test_value', async () => {
+    const val = 15 * 1000000000000000
+    const execute = await contract.methods.sendTestValue({ amount: val })
+    assert.equal(execute.decodedResult, val)
+  })
+
+
   it("OK___Execute_tx", async () => {
     const tx_id = 3
-    const execute = await contract.methods.execute(tx_id)
+    const execute = await contract.methods.execute(tx_id, { gas: 200000 })
     assert.equal(execute.decodedEvents[0].name, "Execute")
     assert.equal(execute.decodedEvents[0].decoded[0], tx_id)
 
@@ -380,7 +388,14 @@ describe('MULTISIG_PRESALE', () => {
     }
   })
 
-  it("OK_APPROVED_AGAIN___Approve_Execute_tx", async () => {
+  // before execution send dummy amount because the amount is already transfered before when one bought the packet.
+  it('OK___Send_test_value', async () => {
+    const val = 15 * 1000000000000000
+    const execute = await contract.methods.sendTestValue({ amount: val })
+    assert.equal(execute.decodedResult, val)
+  })
+
+  it("OK_APPROVED_EXECUTE_AGAIN___Approve_Execute_tx", async () => {
     const tx_id = 2 // Approved by wallet 1 (to be here again) & 2. Now to perform & test both operations...
     const _approval_status_now = await contract.methods.approval_status(tx_id, { gas: 150000 })
     assert.equal(_approval_status_now.decodedResult.get(wallets[0].publicKey), false)
