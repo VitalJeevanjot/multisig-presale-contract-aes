@@ -74,10 +74,34 @@ describe('MULTISIG_PRESALE', () => {
   it("OK___Reserve_Pack", async () => {
     const amount = 79 * 1000000000000000
     const buyer = wallets[4].publicKey
-    const buy_booster_packs = await contract.methods.buy_booster_packs(buyer, { amount: amount, gas: 100000 })
+
+    let balance = (amount / 100) * 15
+    let balance_2 = ((amount - balance) / 100) * 50
+    let balance_3 = balance_2
+
+
+    let wallet_1_old = await client.getBalance(wallets[0].publicKey)
+    let wallet_2_old = await client.getBalance(wallets[1].publicKey)
+    let wallet_3_old = await client.getBalance(wallets[2].publicKey)
+
+
+    // buy booster pack
+    const buy_booster_packs = await contract.methods.buy_booster_packs(buyer, { amount: amount, gas: 100000, onAccount: wallets[4].publicKey })
+
+
     assert.equal(buy_booster_packs.decodedEvents[0].name, "Deposit")
     assert.equal(buy_booster_packs.decodedEvents[0].decoded[0], buyer)
     assert.equal(buy_booster_packs.decodedEvents[0].decoded[1], amount)
+
+    let wallet_1_new = await client.getBalance(wallets[0].publicKey)
+    let wallet_2_new = await client.getBalance(wallets[1].publicKey)
+    let wallet_3_new = await client.getBalance(wallets[2].publicKey)
+
+
+    assert.equal(BigInt(wallet_1_old) + BigInt(balance), wallet_1_new)
+    assert.equal(BigInt(wallet_2_old) + BigInt(balance_2), wallet_2_new)
+    assert.equal(BigInt(wallet_3_old) + BigInt(balance_3), wallet_3_new)
+
   })
 
   it("ERR_GREATER_AMOUNT___Reserve_Pack", async () => {

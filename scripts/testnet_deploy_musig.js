@@ -28,10 +28,18 @@ async function init () {
 
   const musig_presale_Instance = await client.contractCompile(CONTRACT_SOURCE);
 
+  // const owners_arr = [
+  //   process.env.TESTNET_PUBLIC_KEY,
+  //   process.env.TESTNET_PUBLIC_KEY_2,
+  //   process.env.TESTNET_PUBLIC_KEY_3
+  // ]
   const owners_arr = [
-    process.env.TESTNET_PUBLIC_KEY,
-    process.env.TESTNET_PUBLIC_KEY_2
+    "ak_62MPUPpxWox6fSNt2gZMMyhnLpczhi6nS3UcQG4PMaMQrekA4",
+    "ak_2L2B8FG9y8drTYq8mV2FmZB6Revx1C8GYyieb8WTVnCmS44ajW",
+    "ak_KhTZobdWMhs22uJeEpFomdyjvcxuggiJuPxCQsbt1t7BpuFas"
   ]
+
+  const ratio = [15, 50, 100]
 
   const required_approvals = 2
   const extend_expiry_milli = 2592000000 // 30 days
@@ -41,7 +49,8 @@ async function init () {
   const per_user_available = 500
 
 
-  const tx = await musig_presale_Instance.deploy([owners_arr, required_approvals, extend_expiry_milli, max_available, per_user_available])
+
+  const tx = await musig_presale_Instance.deploy([owners_arr, ratio, required_approvals, extend_expiry_milli, max_available, per_user_available])
 
   console.log(tx)
 }
