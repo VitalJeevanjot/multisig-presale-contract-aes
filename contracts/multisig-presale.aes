@@ -63,7 +63,7 @@ payable contract MuSigPreOrder =
             total_packs_bought = 0
             } 
     
-    payable stateful entrypoint buy_booster_packs(buyer: address) =
+    payable stateful entrypoint reserve_booster_packs(buyer: address) =
         require(Call.value == state.pack_price, "Sent less or more AE than the price of booster pack!")
         require(Chain.timestamp < state.buy_function_expiry, "The Presale is expired!")
         require(state.max_available > state.total_packs_bought, "Out of reservation period packs!")

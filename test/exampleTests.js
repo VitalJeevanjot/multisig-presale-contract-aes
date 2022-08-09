@@ -8,7 +8,7 @@
 //   let contract;
 
 //   before(async () => {
-//     client = await utils.getClient();
+//     client = await utils.getSdk();
 
 //     // a filesystem object must be passed to the compiler if the contract uses custom includes
 //     const filesystem = utils.getFilesystem(EXAMPLE_CONTRACT_SOURCE);

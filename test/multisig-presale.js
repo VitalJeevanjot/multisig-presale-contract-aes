@@ -8,7 +8,7 @@ describe('MULTISIG_PRESALE', () => {
   let contract;
 
   before(async () => {
-    client = await utils.getClient();
+    client = await utils.getSdk();
 
     // a filesystem object must be passed to the compiler if the contract uses custom includes
     global.filesystem = utils.getFilesystem(MULTISIG_PRESALE_CONTRACT_SOURCE);
@@ -19,6 +19,10 @@ describe('MULTISIG_PRESALE', () => {
     // initialize the contract instance
     contract = await client.getContractInstance({ source, filesystem });
 
+  });
+
+  afterEach(async () => {
+    await utils.rollbackSnapshot(client);
   });
 
   it('ERR_SAME_ADDRESSES___Deploy: Twice Owners Inserted at deploy', async () => {
@@ -44,6 +48,7 @@ describe('MULTISIG_PRESALE', () => {
   })
 
   it('OK___Deploy: deploy & get owners', async () => {
+    console.log("hello")
     const owners = [
       wallets[0].publicKey,
       wallets[1].publicKey,
@@ -59,9 +64,9 @@ describe('MULTISIG_PRESALE', () => {
 
     const ratio = [15, 50, 100]
 
-
+    console.log("hello2")
     await contract.deploy([owners, ratio, required_approvals, extend_expiry_milli, max_available, per_user_available])
-
+    console.log("hello3")
     const owners_get = await contract.methods.get_owners()
     const pack_price_get = await contract.methods.get_booster_pack_price()
 
@@ -86,12 +91,12 @@ describe('MULTISIG_PRESALE', () => {
 
 
     // buy booster pack
-    const buy_booster_packs = await contract.methods.buy_booster_packs(buyer, { amount: amount, gas: 100000, onAccount: wallets[4].publicKey })
+    const reserve_booster_packs = await contract.methods.reserve_booster_packs(buyer, { amount: amount, gas: 100000, onAccount: wallets[4].publicKey })
 
 
-    assert.equal(buy_booster_packs.decodedEvents[0].name, "Deposit")
-    assert.equal(buy_booster_packs.decodedEvents[0].decoded[0], buyer)
-    assert.equal(buy_booster_packs.decodedEvents[0].decoded[1], amount)
+    assert.equal(reserve_booster_packs.decodedEvents[0].name, "Deposit")
+    assert.equal(reserve_booster_packs.decodedEvents[0].decoded[0], buyer)
+    assert.equal(reserve_booster_packs.decodedEvents[0].decoded[1], amount)
 
     let wallet_1_new = await client.getBalance(wallets[0].publicKey)
     let wallet_2_new = await client.getBalance(wallets[1].publicKey)
@@ -108,7 +113,7 @@ describe('MULTISIG_PRESALE', () => {
     const amount = 79 * 5000000000000000000
     const buyer = wallets[4].publicKey
     try {
-      const _o = await contract.methods.buy_booster_packs(buyer, { amount: amount, gas: 100000 })
+      const _o = await contract.methods.reserve_booster_packs(buyer, { amount: amount, gas: 100000 })
       console.log(_o)
     } catch (err) {
       assert.equal(err.message, 'Invocation failed: "Sent less or more AE than the price of booster pack!"')
@@ -119,7 +124,7 @@ describe('MULTISIG_PRESALE', () => {
     const amount = 79 * 5000000000000000000
     const buyer = wallets[4].publicKey
     try {
-      const _o = await contract.methods.buy_booster_packs(buyer, { amount: amount, gas: 100000 })
+      const _o = await contract.methods.reserve_booster_packs(buyer, { amount: amount, gas: 100000 })
       console.log(_o)
     } catch (err) {
       assert.equal(err.message, 'Invocation failed: "Sent less or more AE than the price of booster pack!"')
@@ -145,7 +150,7 @@ describe('MULTISIG_PRESALE', () => {
     const temp_contract = await client.getContractInstance({ source, filesystem });
     await temp_contract.deploy([owners, ratio, required_approvals, extend_expiry_milli, max_available, per_user_available]);
     try {
-      const _o = await temp_contract.methods.buy_booster_packs(buyer, { amount: amount, gas: 100000 })
+      const _o = await temp_contract.methods.reserve_booster_packs(buyer, { amount: amount, gas: 100000 })
       console.log(_o)
     } catch (err) {
       assert.equal(err.message, 'Invocation failed: "The Presale is expired!"')
@@ -177,7 +182,7 @@ describe('MULTISIG_PRESALE', () => {
     const o_ = await temp_contract.methods.total_available_packs()
     assert.equal(o.decodedResult, parseInt(o_.decodedResult) - 1)
 
-    const _o_ = await temp_contract.methods.buy_booster_packs(buyer, { amount: amount, gas: 100000 })
+    const _o_ = await temp_contract.methods.reserve_booster_packs(buyer, { amount: amount, gas: 100000 })
     const __o_ = await temp_contract.methods.total_available_packs()
     const __o__ = await temp_contract.methods.total_bought()
     assert.equal(_o_.decodedEvents[0].name, "Deposit")
@@ -185,7 +190,7 @@ describe('MULTISIG_PRESALE', () => {
     assert.equal(_o_.decodedEvents[0].decoded[1], amount)
     assert.equal(__o_.decodedResult, __o__.decodedResult)
     try {
-      const _o = await temp_contract.methods.buy_booster_packs(buyer, { amount: amount, gas: 100000 })
+      const _o = await temp_contract.methods.reserve_booster_packs(buyer, { amount: amount, gas: 100000 })
       console.log(_o)
     } catch (err) {
       assert.equal(err.message, 'Invocation failed: "Out of reservation period packs!"')
@@ -198,7 +203,7 @@ describe('MULTISIG_PRESALE', () => {
     const buyer = wallets[6].publicKey
     let index = null
     for (index = 0; index < 5; index++) {
-      const _o = await contract.methods.buy_booster_packs(buyer, { amount: amount, onAccount: buyer, gas: 100000 })
+      const _o = await contract.methods.reserve_booster_packs(buyer, { amount: amount, onAccount: buyer, gas: 100000 })
       assert.equal(_o.decodedEvents[0].name, "Deposit")
       assert.equal(_o.decodedEvents[0].decoded[0], buyer)
       assert.equal(_o.decodedEvents[0].decoded[1], amount)
@@ -208,7 +213,7 @@ describe('MULTISIG_PRESALE', () => {
     const _o_ = await contract.methods.how_many_user_bought(buyer)
     assert.equal(_o_.decodedResult, 5)
     try {
-      const _o = await contract.methods.buy_booster_packs(buyer, { amount: amount, onAccount: buyer, gas: 100000 })
+      const _o = await contract.methods.reserve_booster_packs(buyer, { amount: amount, onAccount: buyer, gas: 100000 })
     } catch (err) {
       assert.equal(err.message, 'Invocation failed: "You cannot perform more reservations!"')
     }
